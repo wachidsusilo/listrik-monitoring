@@ -42,7 +42,7 @@ const Database: NextPage = () => {
                 initialLoading ?
                     <Loading/>
                     :
-                    <main className="relative w-full h-full flex flex-col">
+                    <main className="relative w-full h-full flex flex-col overflow-hidden">
                         <Header className="lg:!hidden"/>
                         <div className="w-full h-full flex">
                             <Navigation/>

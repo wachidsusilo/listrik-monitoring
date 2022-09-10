@@ -200,7 +200,7 @@ const SensorChart = ({className = ''}: Props) => {
 
     return (
         <div
-            className={`relative h-full min-h-[400px] xs:min-h-0 grid grid-rows-[60px_1fr] xs:grid-rows-[50px_1fr] bg-white rounded-[8px] shadow overflow-hidden ${className}`}>
+            className={`relative h-full min-h-[400px] grid grid-rows-[60px_1fr] xs:grid-rows-[50px_1fr] bg-white rounded-[8px] shadow overflow-hidden ${className}`}>
             <div className="h-[60px] xs:h-[50px] px-4 flex items-center justify-between border-b border-b-gray-100
             text-blue-500 xs:text-lg font-medium">
                 <span>Penggunaan Daya Listrik</span>

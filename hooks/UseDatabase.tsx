@@ -104,8 +104,9 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
             setSelectedYear(year)
             setSelectedMonth('Semua')
             setSelectedDay('Semua')
-            setData([])
+            setLoading(false)
             setHasNextPage(true)
+            setData([])
         }
     }, [years])
 
@@ -113,8 +114,9 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
         if (isMonth(month) && months.includes(month)) {
             setSelectedMonth(month)
             setSelectedDay('Semua')
-            setData([])
+            setLoading(false)
             setHasNextPage(true)
+            setData([])
         }
     }, [months])
 
@@ -122,11 +124,13 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
         if (isDay(day) && days.includes(day)) {
             setSelectedDay(day)
         }
-        setData([])
+        setLoading(false)
         setHasNextPage(true)
+        setData([])
     }, [days])
 
     const loadData = useCallback(() => {
+        console.log('re-fetching data')
         setLoading(true)
         return new Promise<void>(async (resolve) => {
             const end = () => {
@@ -209,7 +213,7 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
             }
 
             const fetchData = async (constraintYear: boolean, constraintMonth: boolean) => {
-                while (result.length === 0) {
+                while (result.length < 100) {
                     dayIdx++
                     if (dayIdx >= dayList.length) {
                         dayList = []
@@ -219,7 +223,7 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                         dayIdx = 0
                     }
                     day = dayList[dayIdx]
-                    result = (await getData(`${year}-${month}-${day}`)).reverse()
+                    result = [...result, ...(await getData(`${year}-${month}-${day}`)).reverse()]
                 }
                 return true
             }

@@ -15,7 +15,7 @@ const DatabaseTable = ({className = ''}: Props) => {
     const {sensor1, sensor2, sensor3, sensor4} = useSensor()
     const {data, hasNextPage, loadData, loading} = useDatabase()
 
-    const gridCols = 'grid-cols-[minmax(140px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)]'
+    const gridCols = 'grid-cols-[minmax(200px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)_minmax(80px,1fr)]'
     const headerStyle = 'h-[64px] flex items-center justify-center text-center text-gray-600 select-none whitespace-pre-line font-medium text-sm'
     const bodyStyle = 'flex items-center justify-center text-gray-600 select-none'
 
@@ -59,7 +59,7 @@ const DatabaseTable = ({className = ''}: Props) => {
 
     return (
         <div
-            className={`relative w-full min-w-[640px] grow flex flex-col bg-white rounded-[8px] overflow-hidden shadow ${className}`}>
+            className={`relative w-full min-w-[700px] grow flex flex-col bg-white rounded-[8px] overflow-hidden shadow ${className}`}>
             <div className={`relative grid ${gridCols}`}>
                 <div className={headerStyle}>Tanggal</div>
                 <div className={headerStyle}>Waktu</div>
@@ -82,7 +82,6 @@ const DatabaseTable = ({className = ''}: Props) => {
                                 <InfiniteLoader
                                     isItemLoaded={isItemLoaded}
                                     loadMoreItems={loading ? () => {} : loadData}
-                                    minimumBatchSize={30}
                                     itemCount={itemCount}>
                                     {
                                         ({onItemsRendered, ref}) => (
