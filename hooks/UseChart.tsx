@@ -1,7 +1,8 @@
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react'
-import { isSensorTotalData, SensorTotalData } from '../model/sensor'
+import { SensorTotalData } from '../model/sensor'
 import { PeriodType } from '../model/date'
 import useSensor from './UseSensor'
+import useFirebase from './UseFirebase'
 
 interface IChart {
     data: Array<SensorTotalData>
@@ -25,16 +26,15 @@ export const ChartProvider = ({children}: ChartProviderProps) => {
     const [data, setData] = useState<Array<SensorTotalData>>([])
     const [loading, setLoading] = useState<boolean>(false)
     const [periodType, setPeriodType] = useState<PeriodType>('today')
-    const {sensor1, sensor2, sensor3, sensor4} = useSensor()
+    const {sensorData} = useSensor()
+    const {getDataOfPeriod} = useFirebase()
     const lastMillisRef = useRef<number>(0)
 
     const fetchData = (signal: AbortSignal, onDone?: () => void, onError?: (e: any) => void) => {
-        fetch(`/api/data?type=${periodType}`, {signal})
-            .then(result => result.json())
-            .then(result => {
-                const data = result.data
-                if (data && typeof data === 'object' && Array.isArray(data)) {
-                    setData(data.filter(value => isSensorTotalData(value)))
+        getDataOfPeriod(periodType)
+            .then((result) => {
+                if (!signal.aborted) {
+                    setData(result)
                 }
             })
             .catch((e)=>{
@@ -79,7 +79,7 @@ export const ChartProvider = ({children}: ChartProviderProps) => {
         return () => {
             controller.abort()
         }
-    }, [periodType, sensor1, sensor2, sensor3, sensor4])
+    }, [periodType, sensorData])
 
     return (
         <ChartContext.Provider value={{

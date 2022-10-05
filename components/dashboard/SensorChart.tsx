@@ -9,8 +9,10 @@ import Chart, {
 import DropDown from '../DropDown'
 import useChart from '../../hooks/UseChart'
 import { getPeriodList, toPeriodType } from '../../model/date'
-import { formatDate, formatTime } from '../../utility/utils'
+import { formatDate, formatMonth, formatTime } from '../../utility/utils'
 import Scroller, { ProgressEventHandler } from '../Scroller'
+import { PresentationChartLineIcon } from '@heroicons/react/24/outline'
+import useAuth from '../../hooks/UseAuth'
 
 interface Props {
     className?: string
@@ -22,10 +24,24 @@ const SensorChart = ({className = ''}: Props) => {
     const minRef = useRef<number>(0)
     const progressRef = useRef<ProgressEventHandler>(null)
     const {loading, data, periodType, setPeriodType} = useChart()
-    const chartRef = useRef<Chart<keyof ChartTypeRegistry, (number | ScatterDataPoint | BubbleDataPoint | null)[]>|null>(null)
+    const {user} = useAuth()
+    const chartRef = useRef<Chart<keyof ChartTypeRegistry, (number | ScatterDataPoint | BubbleDataPoint | null)[]> | null>(null)
 
     const isLine = () => {
         return periodType === 'today' || periodType === 'yesterday'
+    }
+
+    const getLabel = (value: string) => {
+        switch (periodType) {
+            case 'today':
+            case 'yesterday':
+                return formatTime(value)
+            case 'this-week':
+            case 'this-month':
+                return formatDate(value, true)
+            default:
+                return formatMonth(value, true)
+        }
     }
 
     useEffect(() => {
@@ -62,6 +78,7 @@ const SensorChart = ({className = ''}: Props) => {
                     borderColor: isLine() ? 'rgb(59, 130, 246)' : barBorderColors,
                     borderWidth: isLine() ? 3 : 1,
                     tension: 0.25,
+                    maxBarThickness: 80,
                     data: []
                 }
             ]
@@ -179,7 +196,7 @@ const SensorChart = ({className = ''}: Props) => {
             }
         }
 
-        chart.data.labels = data.map(value => isLine() ? formatTime(value.dateTime) : formatDate(value.dateTime, true))
+        chart.data.labels = data.map(value => getLabel(value.dateTime))
         chart.data.datasets[0].data = data.map(value => value.total.energy)
         progress.setProgress(1)
 
@@ -200,14 +217,15 @@ const SensorChart = ({className = ''}: Props) => {
 
     return (
         <div
-            className={`relative h-full min-h-[400px] grid grid-rows-[60px_1fr] xs:grid-rows-[50px_1fr] bg-white rounded-[8px] shadow overflow-hidden ${className}`}>
+            className={`relative h-full min-h-[400px] lg:min-h-[500px] xl:min-h-[600px] grid grid-rows-[60px_1fr] 
+            xs:grid-rows-[50px_1fr] bg-white rounded-[8px] shadow overflow-hidden ${className}`}>
             <div className="h-[60px] xs:h-[50px] px-4 flex items-center justify-between border-b border-b-gray-100
             text-blue-500 xs:text-lg font-medium">
-                <span>Penggunaan Daya Listrik</span>
+                <span>Total Penggunaan Daya Listrik</span>
                 <DropDown
-                    className="w-[120px] text-[15px] font-normal"
+                    className="w-[120px] text-[15px] font-normal shrink-0"
                     selected="Hari ini"
-                    items={getPeriodList()}
+                    items={getPeriodList(user === null ? 'this-month' : 'all')}
                     disabled={loading}
                     onItemSelected={(selected) => {
                         setPeriodType(toPeriodType(selected))
@@ -216,19 +234,27 @@ const SensorChart = ({className = ''}: Props) => {
             <div className="relative w-[calc(100%-2rem)] h-[calc(100%-30px)] mx-4 my-3 overflow-hidden">
                 <canvas ref={canvasRef}></canvas>
                 {
-                    loading && (
+                    loading ?
                         <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white">
-                            <span className="w-16 h-16 border-[3px] border-t-transparent border-blue-500
-                            rounded-full animate-spin"></span>
+                            <span className="w-16 h-16 border-[3px] border-t-transparent border-blue-500 rounded-full
+                            animate-spin"></span>
                         </div>
-                    )
+                        :
+                        data.length === 0 && (
+                            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center
+                            text-gray-400 bg-white">
+                                <PresentationChartLineIcon className="w-16 h-16 text-gray-300"/>
+                                <span>Tidak ada data</span>
+                            </div>
+                        )
                 }
             </div>
             <Scroller
                 ref={progressRef}
-                className='absolute w-[calc(100%-70px)] h-[10px] left-1/2 bottom-[4px] -translate-x-1/2 bg-blue-50 rounded-[2px] overflow-hidden'
+                className={`absolute w-[calc(100%-70px)] h-[10px] left-1/2 bottom-[4px] -translate-x-1/2 rounded-[2px] 
+                overflow-hidden ${displayCount >= data.length ? 'bg-transparent' : 'bg-blue-50'}`}
                 dataLength={displayCount}
-                totalLength={data.length} />
+                totalLength={data.length}/>
         </div>
     )
 }

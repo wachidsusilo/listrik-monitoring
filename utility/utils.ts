@@ -1,4 +1,6 @@
 
+export const collator = Intl.Collator(undefined, {numeric: true, sensitivity: 'base'})
+
 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 const isToday = (date: Date) => {
@@ -18,6 +20,13 @@ const isYesterday = (date: Date) => {
 
 const padZero = (value: number) => {
     return value.toString().padStart(2, '0')
+}
+
+export const formatMonth = (timestamp: number | string, simplify: boolean = false) => {
+    const date = new Date(timestamp)
+    const month = simplify ? months[date.getMonth()].slice(0, 3) : months[date.getMonth()]
+    const year = simplify ? date.getFullYear().toString().slice(2,4) : date.getFullYear()
+    return `${month} ${simplify ? "'" : ""}${year}`
 }
 
 export const formatDate = (timestamp: number | string, simplify: boolean = false) => {
@@ -70,4 +79,8 @@ export const getPrecision = (value: number) => {
     } else {
         return 4
     }
+}
+
+export const isObject = (obj: any) => {
+    return obj && typeof obj === 'object' && !Array.isArray(obj)
 }

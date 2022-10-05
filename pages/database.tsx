@@ -44,9 +44,9 @@ const Database: NextPage = () => {
                     :
                     <main className="relative w-full h-full flex flex-col overflow-hidden">
                         <Header className="lg:!hidden"/>
-                        <div className="w-full h-full flex">
-                            <Navigation/>
-                            <section className="w-full h-full flex flex-col">
+                        <div className="relative h-[calc(100%-60px)] lg:h-full grow flex">
+                            <Navigation />
+                            <section className="w-full h-full flex flex-col overflow-hidden">
                                 <Header className="hidden lg:flex"/>
                                 <DatabaseContent/>
                             </section>

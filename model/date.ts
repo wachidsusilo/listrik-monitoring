@@ -27,12 +27,9 @@ export const getMonth = (index: number): Month | undefined => {
 const periodTypes = ['today', 'yesterday', 'this-week', 'this-month', 'this-year', 'all'] as const
 export type PeriodType = typeof periodTypes[number]
 
-export const isValidPeriodType = (type: any): type is PeriodType => {
-    return typeof type === 'string' && periodTypes.includes(type as PeriodType)
-}
-
-export const getPeriodList = () => {
-    return periodTypes.map(value => {
+export const getPeriodList = (until: PeriodType) => {
+    const types = periodTypes.map(v => v).slice(0, periodTypes.indexOf(until) + 1)
+    return types.map(value => {
         switch (value) {
             case 'today':
                 return 'Hari ini'
@@ -64,5 +61,47 @@ export const toPeriodType = (type: string): PeriodType => {
             return 'this-year'
         default:
             return 'all'
+    }
+}
+
+const exportTypes = ['yearly', 'monthly', 'daily', 'hourly', 'minutely', 'none'] as const
+export type ExportType = typeof exportTypes[number]
+
+export const translateExportType = (type: ExportType) => {
+    switch (type) {
+        case 'yearly':
+            return 'Tahunan'
+        case 'monthly':
+            return 'Bulanan'
+        case 'daily':
+            return 'Harian'
+        case 'hourly':
+            return 'Per jam'
+        case 'minutely':
+            return 'Per menit'
+        default:
+            return '-'
+    }
+}
+
+export const getExportTypeList = (from: ExportType, to: ExportType) => {
+    const types = exportTypes.map(v => v).slice(exportTypes.indexOf(from), exportTypes.indexOf(to) + 1)
+    return types.map(v => translateExportType(v))
+}
+
+export const toExportType = (type: String): ExportType => {
+    switch (type) {
+        case 'Tahunan':
+            return 'yearly'
+        case 'Bulanan':
+            return 'monthly'
+        case 'Harian':
+            return 'daily'
+        case 'Per jam':
+            return 'hourly'
+        case 'Per menit':
+            return 'minutely'
+        default:
+            return 'none'
     }
 }

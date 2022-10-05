@@ -71,8 +71,8 @@ const Header = ({className = ''}: Props) => {
                             </div>
                             <button
                                 className={`absolute top-[calc(100%+4px)] right-4 w-[100px] flex items-center justify-center select-none
-                                rounded-[8px] bg-white text-gray-600 font-medium transition-[box-shadow,height] overflow-hidden
-                                ${open ? 'h-[36px] shadow' : 'h-0 shadow-none'}`}
+                                rounded-[8px] bg-white font-medium overflow-hidden transition-[box-shadow,height]
+                                ${open ? 'h-[36px] shadow text-gray-600' : 'h-0 shadow-none text-transparent'}`}
                                 onClick={() => {
                                     if (!loading) {
                                         signOut()

@@ -10,7 +10,7 @@ const validateEmail = (email: string) => {
 
 const LoginContent = () => {
     const [error, setError] = useState<string|null>(null)
-    const [disabled, setDisabled] = useState<boolean>(false)
+    const [disabled, setDisabled] = useState<boolean>(true)
     const credential = useRef({email: '', password: ''})
     const {signIn, loading, user, error: authError} = useAuth()
     const {push, query} = useRouter()
@@ -76,7 +76,7 @@ const LoginContent = () => {
                 }
                 <button
                     className={`w-full h-[40px] mt-8 flex items-center justify-center text-white rounded-[8px] 
-                    font-medium transition active:scale-95 bg-blue-500 disabled:bg-gray-400
+                    font-medium transition bg-blue-500 disabled:bg-gray-400 disabled:active:scale-100
                     ${loading ? 'active:scale-100' : 'active:scale-95'}`}
                     disabled={disabled}
                     onClick={() => {

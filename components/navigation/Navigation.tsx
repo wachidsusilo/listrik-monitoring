@@ -40,7 +40,7 @@ const Navigation = ({className = ''}: Props) => {
 
     return (
         <nav
-            className={`absolute lg:relative top-0 left-0 w-[300px] h-full pt-[60px] lg:pt-0 shrink-0 grow flex flex-col bg-blue-500 transition-[margin] z-40 
+            className={`absolute lg:relative top-0 left-0 w-[300px] h-full shrink-0 grow flex flex-col bg-blue-500 transition-[margin] z-40 
             ${navbarOpen ? 'ml-0' : '-ml-[300px]'} ${className}`}
             onClick={(e) => {
                 e.preventDefault()

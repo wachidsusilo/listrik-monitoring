@@ -5,6 +5,7 @@ import RouteProgress from '../components/RouteProgress'
 import { ClickAnywhereProvider } from '../hooks/UseClickAnywhere'
 import { FirebaseProvider } from '../hooks/UseFirebase'
 import { AuthProvider } from '../hooks/UseAuth'
+import { DeviceProvider } from '../hooks/UseDevice'
 
 function MyApp({Component, pageProps}: AppProps) {
     return (
@@ -14,7 +15,9 @@ function MyApp({Component, pageProps}: AppProps) {
                 <AuthProvider>
                     <NavigationProvider>
                         <ClickAnywhereProvider>
-                            <Component {...pageProps} />
+                            <DeviceProvider>
+                                <Component {...pageProps} />
+                            </DeviceProvider>
                         </ClickAnywhereProvider>
                     </NavigationProvider>
                 </AuthProvider>

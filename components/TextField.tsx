@@ -5,6 +5,7 @@ interface Props {
     type?: HTMLInputTypeAttribute
     value?: string
     placeholder?: string
+    blurOnEnter?: boolean
     icon?: ComponentType<{ className?: string }>
     onChanged?(text: string): void
     onInput?(text: string): void
@@ -20,6 +21,7 @@ const TextField = (
         type,
         icon: Icon,
         value,
+        blurOnEnter,
         placeholder,
         onChanged,
         onInput,
@@ -70,6 +72,9 @@ const TextField = (
             if (e.key === 'Enter' && onEnter) {
                 e.stopPropagation()
                 onEnter()
+                if (blurOnEnter) {
+                    input.blur()
+                }
             }
         }
 

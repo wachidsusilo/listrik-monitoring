@@ -6,7 +6,6 @@ import Header from '../components/navigation/Header'
 import Navigation from '../components/navigation/Navigation'
 import NavigationOverlay from '../components/navigation/NavigationOverlay'
 import ControllerContent from '../components/controller/ControllerContent'
-import { DeviceProvider } from '../hooks/UseDevice'
 import useAuth from '../hooks/UseAuth'
 import { useRouter } from 'next/router'
 import Loading from '../components/Loading'
@@ -27,7 +26,7 @@ const Controller: NextPage = () => {
     if (!initialLoading && !user) {
         push({
             pathname: '/login',
-            query: { origin: '/controller' }
+            query: {origin: '/controller'}
         }, '/login').then()
         return null
     }
@@ -36,22 +35,20 @@ const Controller: NextPage = () => {
         <div className="flex w-full h-screen flex-col">
             <Head>
                 <title>Monitoring Listrik</title>
-                <link rel="icon" href="/favicon.ico" />
+                <link rel="icon" href="/favicon.ico"/>
             </Head>
 
             {
                 initialLoading ?
-                    <Loading />
+                    <Loading/>
                     :
                     <main className="relative w-full h-full flex flex-col">
-                        <Header className='lg:!hidden'/>
-                        <div className='w-full h-full flex'>
-                            <Navigation />
-                            <section className='w-full h-full flex flex-col'>
-                                <Header className='hidden lg:flex'/>
-                                <DeviceProvider>
-                                    <ControllerContent />
-                                </DeviceProvider>
+                        <Header className="lg:!hidden"/>
+                        <div className="relative h-[calc(100%-60px)] lg:h-full grow flex">
+                            <Navigation/>
+                            <section className="w-full h-full flex flex-col overflow-hidden">
+                                <Header className="hidden lg:flex"/>
+                                <ControllerContent/>
                             </section>
                         </div>
                         <NavigationOverlay/>

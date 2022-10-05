@@ -25,6 +25,9 @@ module.exports = {
         addComponents({
           '.scrollbar-thin-blue': {
             '@apply !scrollbar-thin !scrollbar-track-transparent !scrollbar-thumb-blue-transparent': {}
+          },
+          '.scrollbar-thin-transparent': {
+            '@apply !scrollbar-thin !scrollbar-track-transparent !scrollbar-thumb-transparent': {}
           }
         })
 

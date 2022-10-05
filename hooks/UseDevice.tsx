@@ -1,11 +1,24 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 import useFirebase from './UseFirebase'
-import { Device } from '../model/device'
+import { ExtendedDeviceData } from '../model/device'
+import { collator } from '../utility/utils'
 
-const DeviceContext = createContext<Device>({
+interface IDeviceContext {
+    online: boolean
+    lastOnline: number
+    lastUpdate: number
+    deviceData: ExtendedDeviceData
+    setDeviceName(deviceId: string, name: string): void
+    getDeviceName(deviceId: string): string
+}
+
+const DeviceContext = createContext<IDeviceContext>({
     online: false,
     lastOnline: 0,
-    lastUpdate: 0
+    lastUpdate: 0,
+    deviceData: {},
+    setDeviceName() {},
+    getDeviceName(){return ''}
 })
 
 interface DeviceProviderProps {
@@ -16,13 +29,38 @@ export const DeviceProvider = ({children}: DeviceProviderProps) => {
     const [online, setOnline] = useState<boolean>(false)
     const [lastOnline, setLastOnline] = useState<number>(0)
     const [lastUpdate, setLastUpdate] = useState<number>(0)
-    const {onValueDevice} = useFirebase()
+    const [deviceData, setDeviceData] = useState<ExtendedDeviceData>({})
+    const {onValueDevice, setDevice} = useFirebase()
+
+    const setDeviceName = (deviceId: string, name: string) => {
+        setDevice(deviceId, 'name', name)
+    }
+
+    const getDeviceName = (deviceId: string): string => {
+        if (deviceData[deviceId]) {
+            return deviceData[deviceId].name
+        }
+        return deviceId
+    }
 
     useEffect(() => {
-        const unsub = onValueDevice((device) => {
-            setOnline(device.online)
-            setLastOnline(device.lastOnline)
-            setLastUpdate(device.lastUpdate)
+        const unsub = onValueDevice((lastOnline, lastUpdate, data) => {
+            setOnline(Date.now() - lastOnline < 120000)
+            setLastOnline(lastOnline)
+            setLastUpdate(lastUpdate)
+
+            const devices = Object.keys(data)
+                .sort(collator.compare)
+                .reduce<ExtendedDeviceData>((acc, key) => {
+                    acc[key] = {
+                        online: Date.now() - data[key].lastOnline < 120000,
+                        name: data[key].name,
+                        lastOnline: data[key].lastOnline,
+                        lastUpdate: data[key].lastUpdate
+                    }
+                    return acc
+                }, {})
+            setDeviceData(devices)
         })
 
         return () => {
@@ -31,7 +69,7 @@ export const DeviceProvider = ({children}: DeviceProviderProps) => {
     }, [])
 
     return (
-        <DeviceContext.Provider value={{online, lastOnline, lastUpdate}}>
+        <DeviceContext.Provider value={{online, lastOnline, lastUpdate, deviceData, setDeviceName, getDeviceName}}>
             {children}
         </DeviceContext.Provider>
     )

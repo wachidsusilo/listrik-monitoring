@@ -4,16 +4,10 @@ interface Props {
     className?: string
     value?: string
     disabled?: boolean
-    onChange?: (hour: number, minute: number) => void
+    onChange?: (name: string) => void
 }
 
-const regex = new RegExp('^([01]?[0-9]|2[0-3]):([0-5]?[0-9])$')
-
-const isValidTime = (text: string) => {
-    return regex.test(text)
-}
-
-const ClockField = ({className = '', value = '', disabled = false, onChange}: Props) => {
+const NameField = ({className = '', value = '', disabled = false, onChange}: Props) => {
     const [error, setError] = useState<boolean>(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -32,15 +26,12 @@ const ClockField = ({className = '', value = '', disabled = false, onChange}: Pr
         }
 
         input.oninput = () => {
-            setError(!isValidTime(input.value))
+            setError(input.value.trim().length === 0)
         }
 
         input.onchange = () => {
-            if(onChange && isValidTime(input.value)) {
-                const list = input.value.split(':').map(value => Number.parseInt(value))
-                if (list.length === 2) {
-                    onChange(list[0], list[1])
-                }
+            if(onChange && input.value.trim().length !== 0) {
+                onChange(input.value.trim())
             }
         }
 
@@ -65,4 +56,4 @@ const ClockField = ({className = '', value = '', disabled = false, onChange}: Pr
     )
 }
 
-export default ClockField
+export default NameField

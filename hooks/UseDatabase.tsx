@@ -1,7 +1,19 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
-import { ExtendedSensorValueData } from '../model/sensor'
-import { Day, getMonth, indexOfMonth, isDay, isMonth, Month, Year } from '../model/date'
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
+import { ExtendedSensorData } from '../model/sensor'
+import {
+    Day,
+    ExportType,
+    getMonth,
+    indexOfMonth,
+    isDay,
+    isMonth,
+    Month,
+    translateExportType,
+    Year
+} from '../model/date'
 import useFirebase from './UseFirebase'
+import XLSX, { ColInfo } from 'xlsx'
+import { collator } from '../utility/utils'
 
 interface IDatabase {
     years: Array<Year>
@@ -10,13 +22,21 @@ interface IDatabase {
     selectedYear: Year
     selectedMonth: Month
     selectedDay: Day
-    data: Array<ExtendedSensorValueData>
+    deviceIdList: Array<string>
+    data: Array<ExtendedSensorData>
     hasNextPage: boolean
     loading: boolean
+    loadingExport: boolean
+
     setSelectedYear(year: string): void
+
     setSelectedMonth(month: string): void
+
     setSelectedDay(day: string): void
+
     loadData(start: number, end: number): Promise<void>
+
+    exportData(exportType: ExportType, getDeviceName: (deviceId: string) => string): void
 }
 
 const DatabaseContext = createContext<IDatabase>({
@@ -26,20 +46,26 @@ const DatabaseContext = createContext<IDatabase>({
     selectedYear: 'Semua',
     selectedMonth: 'Semua',
     selectedDay: 'Semua',
+    deviceIdList: [],
     data: [],
     hasNextPage: true,
     loading: false,
-    setSelectedYear() {},
-    setSelectedMonth() {},
-    setSelectedDay() {},
-    loadData: () => new Promise<void>(() => {})
+    loadingExport: false,
+    setSelectedYear() {
+    },
+    setSelectedMonth() {
+    },
+    setSelectedDay() {
+    },
+    loadData: () => new Promise<void>(() => {
+    }),
+    exportData: () => {
+    }
 })
 
 interface DatabaseProviderProps {
     children: ReactNode
 }
-
-const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'})
 
 export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
     const [years, setYears] = useState<Array<Year>>([])
@@ -48,10 +74,21 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
     const [selectedYear, setSelectedYear] = useState<Year>('Semua')
     const [selectedMonth, setSelectedMonth] = useState<Month>('Semua')
     const [selectedDay, setSelectedDay] = useState<Day>('Semua')
-    const [data, setData] = useState<Array<ExtendedSensorValueData>>([])
+    const [deviceIdList, setDeviceIdList] = useState<Array<string>>([])
+    const [data, setData] = useState<Array<ExtendedSensorData>>([])
     const [hasNextPage, setHasNextPage] = useState<boolean>(true)
     const [loading, setLoading] = useState<boolean>(false)
-    const {onYearList, onDayList, onMonthList, getData, getMonthList, getDayList, getYearList} = useFirebase()
+    const [loadingExport, setLoadingExport] = useState<boolean>(false)
+    const {
+        onYearList,
+        onDayList,
+        onMonthList,
+        getData,
+        getMonthList,
+        getDayList,
+        getYearList,
+        getExportData
+    } = useFirebase()
 
     useEffect(() => {
         const unsub = onYearList((yearList) => {
@@ -99,38 +136,49 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
         }
     }, [selectedYear, selectedMonth])
 
-    const setYear = useCallback((year: string) => {
+    const setYear = async (year: string) => {
+        if (year === selectedYear) {
+            return
+        }
         if (years.includes(year)) {
             setSelectedYear(year)
             setSelectedMonth('Semua')
             setSelectedDay('Semua')
-            setLoading(false)
             setHasNextPage(true)
+            setDeviceIdList([])
             setData([])
+            await loadMoreData(year, 'Semua', 'Semua')
         }
-    }, [years])
+    }
 
-    const setMonth = useCallback((month: string) => {
+    const setMonth = async (month: string) => {
+        if (month === selectedMonth) {
+            return
+        }
         if (isMonth(month) && months.includes(month)) {
             setSelectedMonth(month)
             setSelectedDay('Semua')
-            setLoading(false)
             setHasNextPage(true)
+            setDeviceIdList([])
             setData([])
+            await loadMoreData(selectedYear, month, 'Semua')
         }
-    }, [months])
+    }
 
-    const setDay = useCallback((day: string) => {
+    const setDay = async (day: string) => {
+        if (day === selectedDay) {
+            return
+        }
         if (isDay(day) && days.includes(day)) {
             setSelectedDay(day)
+            setHasNextPage(true)
+            setDeviceIdList([])
+            setData([])
+            await loadMoreData(selectedYear, selectedMonth, day)
         }
-        setLoading(false)
-        setHasNextPage(true)
-        setData([])
-    }, [days])
+    }
 
-    const loadData = useCallback(() => {
-        console.log('re-fetching data')
+    const loadMoreData = (targetYear: Year, targetMonth: Month, targetDay: Day) => {
         setLoading(true)
         return new Promise<void>(async (resolve) => {
             const end = () => {
@@ -138,7 +186,7 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                 resolve()
             }
 
-            const parseDate = (data: ExtendedSensorValueData | null) => {
+            const parseDate = (data: ExtendedSensorData | null) => {
                 if (!data) {
                     return {year: '', month: '', day: ''}
                 }
@@ -150,7 +198,7 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                 }
             }
 
-            const getLastData = () => new Promise<ExtendedSensorValueData|null>((resolve) => {
+            const getLastData = () => new Promise<ExtendedSensorData | null>((resolve) => {
                 setData((data) => {
                     if (data.length === 0) {
                         resolve(null)
@@ -172,7 +220,8 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
 
             let monthList: Array<string> = []
             let dayList: Array<string> = []
-            let result: Array<ExtendedSensorValueData> = []
+            let idList: Array<string> = []
+            let result: Array<ExtendedSensorData> = []
 
             let yearIdx = yearList.indexOf(lastDate.year)
             let monthIdx = -1
@@ -218,17 +267,19 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                     if (dayIdx >= dayList.length) {
                         dayList = []
                         if (constraintMonth || !(await fetchDayList(constraintYear))) {
-                            return false
+                            setHasNextPage(false)
+                            return
                         }
                         dayIdx = 0
                     }
                     day = dayList[dayIdx]
-                    result = [...result, ...(await getData(`${year}-${month}-${day}`)).reverse()]
+                    const {ids: id, data} = await getData(`${year}-${month}-${day}`)
+                    idList = Array.from(new Set(new Set(idList.concat(id)))).sort(collator.compare)
+                    result = [...result, ...data.reverse()]
                 }
-                return true
             }
 
-            if (selectedYear === 'Semua') {
+            if (targetYear === 'Semua') {
                 if (yearIdx !== -1) {
                     year = yearList[yearIdx]
                     monthList = (await getMonthList(year)).sort(collator.compare).reverse()
@@ -249,16 +300,14 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                     return
                 }
 
-                if (!(await fetchData(false, false))) {
-                    return
-                }
-
+                await fetchData(false, false)
+                setDeviceIdList(ids => Array.from(new Set(new Set(idList.concat(ids)))).sort(collator.compare))
                 setData((data) => [...data, ...result])
                 end()
                 return
             }
 
-            yearIdx = yearList.indexOf(selectedYear)
+            yearIdx = yearList.indexOf(targetYear)
             if (yearIdx === -1) {
                 setHasNextPage(false)
                 end()
@@ -267,7 +316,7 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
             year = yearList[yearIdx]
             monthList = (await getMonthList(year)).sort(collator.compare).reverse()
 
-            if (selectedMonth === 'Semua') {
+            if (targetMonth === 'Semua') {
                 monthIdx = monthList.indexOf(lastDate.month)
                 if (monthIdx !== -1) {
                     month = monthList[monthIdx]
@@ -279,16 +328,14 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                     return
                 }
 
-                if (!(await fetchData(true, false))) {
-                    return
-                }
-
+                await fetchData(true, false)
+                setDeviceIdList(ids => Array.from(new Set(new Set(idList.concat(ids)))).sort(collator.compare))
                 setData((data) => [...data, ...result])
                 end()
                 return
             }
 
-            monthIdx = monthList.indexOf(indexOfMonth(selectedMonth))
+            monthIdx = monthList.indexOf(indexOfMonth(targetMonth))
             if (monthIdx === -1) {
                 setHasNextPage(false)
                 end()
@@ -297,25 +344,25 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
             month = monthList[monthIdx]
             dayList = (await getDayList(year, month)).sort(collator.compare).reverse()
 
-            if (selectedDay === 'Semua') {
+            if (targetDay === 'Semua') {
                 dayIdx = dayList.indexOf(lastDate.day)
-                if (!(await fetchData(true, true))) {
-                    return
-                }
-
+                await fetchData(true, true)
+                setDeviceIdList(ids => Array.from(new Set(new Set(idList.concat(ids)))).sort(collator.compare))
                 setData((data) => [...data, ...result])
                 end()
                 return
             }
 
-            dayIdx = dayList.indexOf(selectedDay)
+            dayIdx = dayList.indexOf(targetDay)
             if (dayIdx === -1) {
                 setHasNextPage(false)
                 end()
                 return
             }
             day = dayList[dayIdx]
-            result = await getData(`${year}-${month}-${day}`)
+            const {ids: id, data} = await getData(`${year}-${month}-${day}`)
+            idList = id
+            result = data
 
             if (result.length === 0) {
                 setHasNextPage(false)
@@ -323,11 +370,113 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
                 return
             }
 
+            setDeviceIdList(ids => Array.from(new Set(new Set(idList.concat(ids)))).sort(collator.compare))
             setData((data) => [...data, ...result])
             setHasNextPage(false)
             end()
         })
-    }, [selectedYear, selectedMonth, selectedDay])
+    }
+
+    const exportData = async (exportType: ExportType, getDeviceName: (deviceId: string) => string) => {
+        setLoadingExport(true)
+        const {ids, data} = await getExportData(exportType, selectedYear, selectedMonth, selectedDay)
+        const idList = ids.sort(collator.compare)
+
+        const padStart = (n: number) => {
+            return n.toString().padStart(2, '0')
+        }
+
+        const getTimeHeader = () => {
+            switch (exportType) {
+                case 'yearly':
+                    return 'Tahun'
+                case 'monthly':
+                    return 'Bulan'
+                case 'daily':
+                    return 'Tanggal'
+                case 'hourly':
+                    return selectedDay === 'Semua' ? 'Tanggal/Waktu' : 'Waktu'
+                default:
+                    return 'Waktu'
+            }
+        }
+
+        const formatDate = (dateTime: string) => {
+            const date = new Date(dateTime)
+            switch (exportType) {
+                case 'yearly':
+                    return date.getFullYear().toString()
+                case 'monthly':
+                    return selectedYear === 'Semua' ? `${date.getFullYear()}-${padStart(date.getMonth() + 1)}` : `${getMonth(date.getMonth() + 1)}`
+                case 'daily':
+                    return `${date.getFullYear()}-${padStart(date.getMonth() + 1)}-${padStart(date.getDate())}`
+                case 'hourly':
+                    return selectedDay === 'Semua'
+                        ? `${date.getFullYear()}-${padStart(date.getMonth() + 1)}-${padStart(date.getDate())}, ${padStart(date.getHours())}:00`
+                        : `${padStart(date.getHours())}:00`
+                default:
+                    return `${padStart(date.getHours())}:${padStart(date.getMinutes())}`
+            }
+        }
+
+        const getFileNameDate = () => {
+            if (selectedYear === 'Semua') {
+                return 'Semua'
+            }
+            if (selectedMonth === 'Semua') {
+                return selectedYear
+            }
+            if (selectedDay === 'Semua') {
+                return `${selectedYear}_${indexOfMonth(selectedMonth)}`
+            }
+            return `${selectedYear}_${indexOfMonth(selectedMonth)}_${selectedDay}`
+        }
+
+        const titles: Array<string> = [getTimeHeader(), ...idList.map(id => getDeviceName(id)), 'Total']
+        const cellWidths: Array<ColInfo> = []
+        const workbook = XLSX.utils.book_new()
+        const sheetName = `Data ${translateExportType(exportType)}`
+        const fileName = `Data Monitoring Listrik - ${getFileNameDate()} - ${translateExportType(exportType)}.xlsx`
+        const worksheet = XLSX.utils.aoa_to_sheet([titles])
+
+        for (const title of titles) {
+            cellWidths.push({wch: title.length})
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            const sensor = data[i]
+            const formattedDate = formatDate(sensor.dateTime)
+            const buffer: Array<any> = [formattedDate]
+
+            if (formattedDate.length > (cellWidths[0].wch ?? 0)) {
+                cellWidths[0].wch = formattedDate.length
+            }
+
+            for (let j = 0; j < idList.length; j++) {
+                const key = idList[j]
+                const value = sensor.data[key]?.energy ?? 0
+                buffer.push(value)
+                if (value.toString().length > (cellWidths[j + 1].wch ?? 0)) {
+                    cellWidths[j + 1].wch = value.toString().length
+                }
+            }
+
+            buffer.push(sensor.total.energy)
+            if (sensor.total.energy.toString().length > (cellWidths[cellWidths.length - 1].wch ?? 0)) {
+                cellWidths[cellWidths.length - 1].wch = sensor.total.energy.toString().length
+            }
+            XLSX.utils.sheet_add_aoa(worksheet, [buffer], {origin: {r: i + 1, c: 0}})
+        }
+
+        for (const width of cellWidths) {
+            width.wch = (width.wch ?? 0) + 4
+        }
+
+        worksheet['!cols'] = cellWidths
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+        XLSX.writeFileXLSX(workbook, fileName)
+        setLoadingExport(false)
+    }
 
     return (
         <DatabaseContext.Provider value={{
@@ -337,13 +486,16 @@ export const DatabaseProvider = ({children}: DatabaseProviderProps) => {
             selectedYear,
             selectedMonth,
             selectedDay,
+            deviceIdList,
             data,
             hasNextPage,
             loading,
+            loadingExport,
             setSelectedYear: setYear,
             setSelectedMonth: setMonth,
             setSelectedDay: setDay,
-            loadData
+            loadData: () => loadMoreData(selectedYear, selectedMonth, selectedDay),
+            exportData
         }}>
             {children}
         </DatabaseContext.Provider>
