@@ -35,7 +35,7 @@ const Database: NextPage = () => {
         <div className="flex w-full h-screen flex-col">
             <Head>
                 <title>Monitoring Listrik</title>
-                <link rel="icon" href="/favicon.ico"/>
+                <link rel="icon" href="/favicon.png"/>
             </Head>
 
             {

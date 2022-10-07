@@ -22,7 +22,7 @@ const Home: NextPage = () => {
         <div className="w-full h-screen flex flex-col overflow-hidden">
             <Head>
                 <title>Monitoring Listrik</title>
-                <link rel="icon" href="/favicon.ico"/>
+                <link rel="icon" href="/favicon.png"/>
             </Head>
 
             <main className="w-full h-full flex flex-col">

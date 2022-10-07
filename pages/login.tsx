@@ -23,7 +23,7 @@ const Login: NextPage = () => {
         <div className="flex w-full h-[100vh] min-h-screen flex-col">
             <Head>
                 <title>Monitoring Listrik</title>
-                <link rel="icon" href="/favicon.ico" />
+                <link rel="icon" href="/favicon.png" />
             </Head>
 
             {
