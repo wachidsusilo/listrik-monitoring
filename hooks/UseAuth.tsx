@@ -7,7 +7,7 @@ interface IAuthContext {
     initialLoading: boolean
     loading: boolean
     error: string | null
-    signIn(email: string, password: string): void
+    signIn(email: string, password: string, retryOnInternalError?: boolean): void
     signOut(): void
 }
 
@@ -42,7 +42,7 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
         }
     }, [])
 
-    const signIn = useCallback((email: string, password: string) => {
+    const signIn = useCallback((email: string, password: string, retryOnInternalError: boolean = true) => {
         setLoading(true)
         setError(null)
         login(email, password)
@@ -50,8 +50,11 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
                 setUser(user)
             })
             .catch((reason) => {
-                console.log(reason)
-                setError(reason?.code ?? 'unknown error')
+                if (reason?.code === 'auth/internal-error' && retryOnInternalError) {
+                    signIn(email, password, false)
+                } else {
+                    setError(reason?.code ?? 'unknown error')
+                }
             })
             .finally(() => {
                 setLoading(false)
@@ -66,7 +69,6 @@ export const AuthProvider = ({children}: AuthProviderProps) => {
                 setLoading(false)
             })
             .catch((reason) => {
-                console.log(reason)
                 setError(reason?.code ?? 'unknown error')
             })
             .finally(() => {
